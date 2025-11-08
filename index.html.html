@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Download any YouTube video in high quality. Fast, free YouTube video downloader.">
+    <meta name="keywords" content="youtube downloader, video download, youtube video, mp4 download">
+    <title>YouTube Video Downloader | Download YouTube Videos Free</title>
+    <style>
+        :root {
+            --primary-color: #ff0000;
+            --primary-dark: #cc0000;
+            --secondary-color: #282828;
+            --light-bg: #f9f9f9;
+            --white: #ffffff;
+            --text-dark: #333333;
+            --text-light: #666666;
+            --border-radius: 8px;
+            --box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: var(--light-bg);
+            color: var(--text-dark);
+            line-height: 1.6;
+        }
+
+        .container {
+            width: 90%;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            background-color: var(--white);
+            box-shadow: var(--box-shadow);
+            padding: 1rem 0;
+            text-align: center;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .logo-icon {
+            color: var(--primary-color);
+            font-size: 2rem;
+        }
+
+        .logo-text {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--secondary-color);
+        }
+
+        .hero {
+            background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+            color: var(--white);
+            padding: 3rem 0;
+            text-align: center;
+            margin-bottom: 2rem;
+            border-radius: var(--border-radius);
+        }
+
+        .hero h1 {
+            font-size: 2rem;
+            margin-bottom: 1rem;
+        }
+
+        .download-section {
+            background-color: var(--white);
+            border-radius: var(--border-radius);
+            box-shadow: var(--box-shadow);
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .input-group {
+            display: flex;
+            margin-bottom: 1.5rem;
+        }
+
+        .url-input {
+            flex: 1;
+            padding: 1rem;
+            border: 1px solid #ddd;
+            border-radius: var(--border-radius) 0 0 var(--border-radius);
+            font-size: 1rem;
+            outline: none;
+        }
+
+        .url-input:focus {
+            border-color: var(--primary-color);
+        }
+
+        .fetch-btn {
+            background-color: var(--primary-color);
+            color: var(--white);
+            border: none;
+            border-radius: 0 var(--border-radius) var(--border-radius) 0;
+            padding: 0 1.5rem;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .fetch-btn:hover {
+            background-color: var(--primary-dark);
+        }
+
+        .fetch-btn:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+
+        .video-preview {
+            display: none;
+            margin-bottom: 1.5rem;
+        }
+
+        .video-info {
+            display: flex;
+            gap: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .thumbnail {
+            width: 160px;
+            height: 90px;
+            border-radius: var(--border-radius);
+            object-fit: cover;
+        }
+
+        .video-details {
+            flex: 1;
+        }
+
+        .video-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .video-meta {
+            color: var(--text-light);
+            font-size: 0.9rem;
+        }
+
+        .download-options {
+            display: none;
+            margin-bottom: 1.5rem;
+        }
+
+        .quality-options {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .quality-btn {
+            padding: 0.5rem 1rem;
+            background-color: var(--light-bg);
+            border: 1px solid #ddd;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+        }
+
+        .quality-btn.active {
+            background-color: var(--primary-color);
+            color: var(--white);
+            border-color: var(--primary-color);
+        }
+
+        .ad-container {
+            margin: 1.5rem 0;
+            text-align: center;
+            min-height: 90px;
+            background-color: #f0f0f0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: var(--border-radius);
+            border: 1px dashed #ccc;
+        }
+
+        .ad-label {
+            font-size: 0.8rem;
+            color: var(--text-light);
+            margin-bottom: 0.5rem;
+        }
+
+        .download-btn {
+            background-color: var(--primary-color);
+            color: var(--white);
+            border: none;
+            border-radius: var(--border-radius);
+            padding: 1rem 2rem;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+        }
+
+        .download-btn:hover {
+            background-color: var(--primary-dark);
+        }
+
+        .download-btn:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+
+        .ad-notice {
+            text-align: center;
+            font-size: 0.9rem;
+            color: var(--text-light);
+            margin-top: 0.5rem;
+        }
+
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .feature-card {
+            background-color: var(--white);
+            border-radius: var(--border-radius);
+            padding: 1.5rem;
+            box-shadow: var(--box-shadow);
+            text-align: center;
+        }
+
+        .feature-icon {
+            font-size: 2rem;
+            color: var(--primary-color);
+            margin-bottom: 1rem;
+        }
+
+        footer {
+            background-color: var(--secondary-color);
+            color: var(--white);
+            padding: 2rem 0;
+            text-align: center;
+            margin-top: 2rem;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            margin: 1rem 0;
+        }
+
+        .spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-left-color: var(--primary-color);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 768px) {
+            .video-info {
+                flex-direction: column;
+            }
+
+            .thumbnail {
+                width: 100%;
+                height: auto;
+                max-height: 200px;
+            }
+
+            .input-group {
+                flex-direction: column;
+            }
+
+            .url-input, .fetch-btn {
+                width: 100%;
+                border-radius: var(--border-radius);
+                margin-bottom: 0.5rem;
+            }
+        }
+    </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <header>
+        <div class="container">
+            <div class="logo">
+                <i class="fab fa-youtube logo-icon"></i>
+                <span class="logo-text">YT Downloader</span>
+            </div>
+        </div>
+    </header>
+
+    <section class="hero">
+        <div class="container">
+            <h1>Download YouTube Videos in Seconds</h1>
+            <p>Fast, free, and easy to use YouTube video downloader</p>
+        </div>
+    </section>
+
+    <main class="container">
+        <!-- Ad Placement 1: Banner Ad (728x90) -->
+        <div class="ad-container">
+            <div>
+                <div class="ad-label">ADVERTISEMENT (728x90 Banner)</div>
+                <!-- ADD YOUR ADASTRA BANNER AD CODE HERE -->
+                <p>Ad space for monetization</p>
+            </div>
+        </div>
+
+        <section class="download-section">
+            <h2>Download YouTube Video</h2>
+            <p>Paste the YouTube video URL below to get started</p>
+            
+            <div class="input-group">
+                <input type="text" class="url-input" placeholder="Paste YouTube URL here (e.g., https://www.youtube.com/watch?v=...)" id="videoUrl">
+                <button class="fetch-btn" id="fetchBtn">Get Video</button>
+            </div>
+
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <p>Processing your request...</p>
+            </div>
+
+            <div class="video-preview" id="videoPreview">
+                <div class="video-info">
+                    <img src="" alt="Video Thumbnail" class="thumbnail" id="videoThumbnail">
+                    <div class="video-details">
+                        <h3 class="video-title" id="videoTitle">Video Title</h3>
+                        <p class="video-meta" id="videoMeta">Duration: --:-- | Views: --</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="download-options" id="downloadOptions">
+                <h3>Select Quality</h3>
+                <div class="quality-options" id="qualityOptions">
+                    <!-- Quality options will be added dynamically -->
+                </div>
+                
+                <!-- Ad Placement 2: Square Ad (250x250) -->
+                <div class="ad-container">
+                    <div>
+                        <div class="ad-label">ADVERTISEMENT (250x250 Square)</div>
+                        <!-- ADD YOUR ADASTRA SQUARE AD CODE HERE -->
+                        <p>Ad space for monetization</p>
+                    </div>
+                </div>
+                
+                <button class="download-btn" id="downloadBtn">Download Video</button>
+                <p class="ad-notice">Clicking download will show an ad. Thank you for supporting us!</p>
+            </div>
+        </section>
+
+        <section class="features">
+            <div class="feature-card">
+                <i class="fas fa-bolt feature-icon"></i>
+                <h3>Fast Download</h3>
+                <p>Quick YouTube video downloads with our optimized service</p>
+            </div>
+            <div class="feature-card">
+                <i class="fas fa-highlighter feature-icon"></i>
+                <h3>High Quality</h3>
+                <p>Get videos in the highest available quality up to 1080p</p>
+            </div>
+            <div class="feature-card">
+                <i class="fas fa-shield-alt feature-icon"></i>
+                <h3>Safe & Secure</h3>
+                <p>No registration required. Your privacy is protected</p>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2023 YT Downloader. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script>
+        // For now, we'll use a simulated backend since we're waiting for Netlify setup
+        // Replace this URL with your Netlify function URL when ready
+        const backendUrl = 'https://your-netlify-site.netlify.app/.netlify/functions/get-video-details';
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const fetchBtn = document.getElementById('fetchBtn');
+            const videoUrlInput = document.getElementById('videoUrl');
+            const videoPreview = document.getElementById('videoPreview');
+            const downloadOptions = document.getElementById('downloadOptions');
+            const qualityOptions = document.getElementById('qualityOptions');
+            const downloadBtn = document.getElementById('downloadBtn');
+            const loading = document.getElementById('loading');
+            const videoThumbnail = document.getElementById('videoThumbnail');
+            const videoTitle = document.getElementById('videoTitle');
+            const videoMeta = document.getElementById('videoMeta');
+            
+            let currentVideoId = null;
+            let adShown = false;
+
+            // Fetch video info when button is clicked
+            fetchBtn.addEventListener('click', async function() {
+                const videoUrl = videoUrlInput.value.trim();
+                if (!videoUrl) {
+                    alert('Please enter a YouTube URL');
+                    return;
+                }
+
+                const videoId = extractVideoId(videoUrl);
+                if (!videoId) {
+                    alert('Invalid YouTube URL. Please check and try again.');
+                    return;
+                }
+                currentVideoId = videoId;
+
+                fetchBtn.disabled = true;
+                fetchBtn.textContent = 'Fetching...';
+                loading.style.display = 'block';
+                videoPreview.style.display = 'none';
+                downloadOptions.style.display = 'none';
+
+                try {
+                    // For demo purposes - simulate API response
+                    // In production, uncomment the fetch code below
+                    
+                    // REAL API CALL (commented out for now)
+                    /*
+                    const response = await fetch(`${backendUrl}?videoId=${videoId}`);
+                    if (!response.ok) {
+                        throw new Error('Failed to fetch video details');
+                    }
+                    const data = await response.json();
+                    */
+                    
+                    // DEMO DATA - Remove this when using real API
+                    const data = {
+                        title: 'YouTube Video - ' + videoId,
+                        thumbnail: `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`,
+                        duration: '10:30',
+                        views: '1,234,567',
+                        formats: [
+                            { quality: '360p', container: 'mp4', url: '#' },
+                            { quality: '480p', container: 'mp4', url: '#' },
+                            { quality: '720p', container: 'mp4', url: '#' },
+                            { quality: '1080p', container: 'mp4', url: '#' }
+                        ]
+                    };
+
+                    // Display video information
+                    videoThumbnail.src = data.thumbnail;
+                    videoTitle.textContent = data.title;
+                    videoMeta.textContent = `Duration: ${data.duration} | Views: ${data.views}`;
+
+                    videoPreview.style.display = 'block';
+
+                    // Populate quality options
+                    qualityOptions.innerHTML = '';
+                    data.formats.forEach(format => {
+                        const btn = document.createElement('button');
+                        btn.className = 'quality-btn';
+                        btn.textContent = `${format.quality} (${format.container})`;
+                        btn.dataset.url = format.url;
+                        btn.addEventListener('click', function() {
+                            document.querySelectorAll('.quality-btn').forEach(b => {
+                                b.classList.remove('active');
+                            });
+                            btn.classList.add('active');
+                        });
+                        qualityOptions.appendChild(btn);
+                    });
+
+                    downloadOptions.style.display = 'block';
+                } catch (error) {
+                    console.error('Error:', error);
+                    alert('Error: ' + error.message);
+                } finally {
+                    fetchBtn.disabled = false;
+                    fetchBtn.textContent = 'Get Video';
+                    loading.style.display = 'none';
+                }
+            });
+
+            // Download button functionality
+            downloadBtn.addEventListener('click', function() {
+                if (!adShown) {
+                    // First click - show ad
+                    alert('Ad would be shown here. In production, add your Adastra pop-under ad code.');
+                    // ADD YOUR ADASTRA POP-UNDER AD CODE HERE
+                    
+                    downloadBtn.textContent = 'Click Again to Download';
+                    adShown = true;
+                    return;
+                }
+
+                // Second click - proceed with download
+                const selectedQuality = document.querySelector('.quality-btn.active');
+                if (!selectedQuality) {
+                    alert('Please select a video quality');
+                    return;
+                }
+
+                downloadBtn.disabled = true;
+                downloadBtn.textContent = 'Downloading...';
+
+                // For demo - simulate download
+                setTimeout(() => {
+                    alert('Download functionality will work when backend is connected!');
+                    downloadBtn.disabled = false;
+                    downloadBtn.textContent = 'Download Video';
+                    adShown = false;
+                }, 1000);
+            });
+
+            // Helper function to extract YouTube Video ID from URL
+            function extractVideoId(url) {
+                const regExp = /^.*((youtu.be\/)|(v\/)|(\/u\/\w\/)|(embed\/)|(watch\?))\??v?=?([^#&?]*).*/;
+                const match = url.match(regExp);
+                return (match && match[7].length === 11) ? match[7] : null;
+            }
+        });
+    </script>
+</body>
+</html>

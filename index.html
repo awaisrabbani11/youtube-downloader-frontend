@@ -439,13 +439,26 @@
             try {
                 const response = await fetch(`${functionUrl}?videoId=${videoId}`);
                 
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(errorData.error || 'Failed to fetch video details');
+                // First, check if response is JSON
+                const contentType = response.headers.get('content-type');
+                if (!contentType || !contentType.includes('application/json')) {
+                    // If not JSON, get as text to see what's wrong
+                    const text = await response.text();
+                    console.error('Non-JSON response:', text);
+                    throw new Error('Server returned invalid response. Please check function deployment.');
                 }
                 
                 const data = await response.json();
-                console.log('Video data:', data);
+                
+                if (!response.ok) {
+                    throw new Error(data.error || `Server error: ${response.status}`);
+                }
+
+                if (!data.success) {
+                    throw new Error(data.error || 'Failed to fetch video details');
+                }
+
+                console.log('Video data received:', data);
 
                 // Display video information
                 videoThumbnail.src = data.thumbnail;
@@ -459,7 +472,7 @@
                     data.formats.forEach(format => {
                         const btn = document.createElement('button');
                         btn.className = 'quality-btn';
-                        btn.textContent = `${format.quality} (${format.container})${format.hasAudio ? '' : ' - Video Only'}`;
+                        btn.textContent = `${format.quality} (${format.container})`;
                         btn.dataset.url = format.url;
                         btn.addEventListener('click', function() {
                             document.querySelectorAll('.quality-btn').forEach(b => {
@@ -469,11 +482,9 @@
                         });
                         qualityOptions.appendChild(btn);
                     });
+                    qualityOptions.innerHTML += `<p style="color: green; margin-top: 10px;">${data.message}</p>`;
                 } else {
-                    qualityOptions.innerHTML = '<p>No downloadable formats found. The video might be restricted or unavailable.</p>';
-                    if (data.rawData) {
-                        console.log('Raw API response:', data.rawData);
-                    }
+                    qualityOptions.innerHTML = `<p style="color: orange;">${data.message || 'No downloadable formats found'}</p>`;
                 }
 
                 downloadOptions.style.display = 'block';
@@ -487,19 +498,16 @@
             }
         });
 
-        // Download button functionality
+        // Download button functionality (keep your existing code here)
         downloadBtn.addEventListener('click', function() {
             if (!adShown) {
                 // First click - show ad
                 alert('Ad would be shown here. Replace with Adastra ad code');
-                // Example: window.open('https://your-ad-url.com', '_blank', 'popunder');
-                
                 downloadBtn.textContent = 'Click Again to Download';
                 adShown = true;
                 return;
             }
 
-            // Second click - proceed with download
             const selectedQuality = document.querySelector('.quality-btn.active');
             if (!selectedQuality) {
                 alert('Please select a video quality');
@@ -509,18 +517,15 @@
             downloadBtn.disabled = true;
             downloadBtn.textContent = 'Downloading...';
 
-            // Create download link
             const downloadLink = document.createElement('a');
             downloadLink.href = selectedQuality.dataset.url;
             downloadLink.target = '_blank';
             downloadLink.download = `youtube-video-${currentVideoId}.mp4`;
             
-            // Trigger the download
             document.body.appendChild(downloadLink);
             downloadLink.click();
             document.body.removeChild(downloadLink);
 
-            // Reset button
             setTimeout(() => {
                 downloadBtn.disabled = false;
                 downloadBtn.textContent = 'Download Video';
@@ -528,7 +533,6 @@
             }, 2000);
         });
 
-        // Helper function to extract YouTube Video ID from URL
         function extractVideoId(url) {
             const regExp = /^.*((youtu.be\/)|(v\/)|(\/u\/\w\/)|(embed\/)|(watch\?))\??v?=?([^#&?]*).*/;
             const match = url.match(regExp);

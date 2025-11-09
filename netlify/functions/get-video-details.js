@@ -1,8 +1,8 @@
 // netlify/functions/get-video-details.js
-const axios = require('axios'); // You'll need to install this package
+const axios = require('axios');
 
 exports.handler = async (event, context) => {
-  // Handle CORS - allows your frontend to call this function
+  // Handle CORS
   const headers = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'Content-Type',
@@ -18,25 +18,9 @@ exports.handler = async (event, context) => {
     };
   }
 
-  // Only allow GET and POST requests
-  if (event.httpMethod !== 'GET' && event.httpMethod !== 'POST') {
-    return {
-      statusCode: 405,
-      headers,
-      body: JSON.stringify({ error: 'Method Not Allowed' })
-    };
-  }
-
   try {
-    // Get videoId from query parameters or body
-    let videoId;
-    if (event.httpMethod === 'GET') {
-      videoId = event.queryStringParameters.videoId;
-    } else {
-      const body = JSON.parse(event.body || '{}');
-      videoId = body.videoId;
-    }
-
+    // Get videoId from the query string
+    const videoId = event.queryStringParameters.videoId;
     if (!videoId) {
       return {
         statusCode: 400,
@@ -45,18 +29,21 @@ exports.handler = async (event, context) => {
       };
     }
 
-    // SECURE API CALL - your key is safe here
+    // SECURELY get your API key from the environment variable
+    const { RAPIDAPI_KEY } = process.env;
+
+    // Make the request to the external API using your key
     const response = await axios.get(
       `https://youtube-media-downloader.p.rapidapi.com/v2/video/details?videoId=${videoId}&urlAccess=normal&videos=auto&audios=auto`,
       {
         headers: {
-          'X-RapidAPI-Key': process.env.RAPIDAPI_KEY, // Your secured key
+          'X-RapidAPI-Key': RAPIDAPI_KEY,
           'X-RapidAPI-Host': 'youtube-media-downloader.p.rapidapi.com'
         }
       }
     );
 
-    // Return the video data to your frontend
+    // Return the data to your frontend
     return {
       statusCode: 200,
       headers,
@@ -65,14 +52,10 @@ exports.handler = async (event, context) => {
 
   } catch (error) {
     console.error('Function error:', error);
-    
     return {
       statusCode: 500,
       headers,
-      body: JSON.stringify({ 
-        error: 'Failed to fetch video details',
-        message: error.message 
-      })
+      body: JSON.stringify({ error: 'Failed to fetch video details' })
     };
   }
 };

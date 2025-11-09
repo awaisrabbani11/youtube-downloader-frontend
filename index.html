@@ -414,6 +414,7 @@
         
         let currentVideoId = null;
         let adShown = false;
+        let currentFormats = [];
 
         // Fetch video info when button is clicked
         fetchBtn.addEventListener('click', async function() {
@@ -439,13 +440,10 @@
             try {
                 const response = await fetch(`${functionUrl}?videoId=${videoId}`);
                 
-                // First, check if response is JSON
                 const contentType = response.headers.get('content-type');
                 if (!contentType || !contentType.includes('application/json')) {
-                    // If not JSON, get as text to see what's wrong
                     const text = await response.text();
-                    console.error('Non-JSON response:', text);
-                    throw new Error('Server returned invalid response. Please check function deployment.');
+                    throw new Error('Server returned invalid response');
                 }
                 
                 const data = await response.json();
@@ -459,6 +457,7 @@
                 }
 
                 console.log('Video data received:', data);
+                currentFormats = data.formats || [];
 
                 // Display video information
                 videoThumbnail.src = data.thumbnail;
@@ -468,12 +467,18 @@
 
                 // Populate quality options
                 qualityOptions.innerHTML = '';
-                if (data.formats && data.formats.length > 0) {
-                    data.formats.forEach(format => {
+                if (currentFormats.length > 0) {
+                    currentFormats.forEach(format => {
                         const btn = document.createElement('button');
                         btn.className = 'quality-btn';
-                        btn.textContent = `${format.quality} (${format.container})`;
+                        let label = `${format.quality} (${format.container})`;
+                        if (format.isFallback) label += ' - External Service';
+                        if (!format.hasAudio) label += ' - Video Only';
+                        
+                        btn.textContent = label;
                         btn.dataset.url = format.url;
+                        btn.dataset.fallback = format.isFallback || false;
+                        
                         btn.addEventListener('click', function() {
                             document.querySelectorAll('.quality-btn').forEach(b => {
                                 b.classList.remove('active');
@@ -498,7 +503,7 @@
             }
         });
 
-        // Download button functionality (keep your existing code here)
+        // Download button functionality
         downloadBtn.addEventListener('click', function() {
             if (!adShown) {
                 // First click - show ad
@@ -514,23 +519,37 @@
                 return;
             }
 
+            const isFallback = selectedQuality.dataset.fallback === 'true';
+            const downloadUrl = selectedQuality.dataset.url;
+
             downloadBtn.disabled = true;
             downloadBtn.textContent = 'Downloading...';
 
-            const downloadLink = document.createElement('a');
-            downloadLink.href = selectedQuality.dataset.url;
-            downloadLink.target = '_blank';
-            downloadLink.download = `youtube-video-${currentVideoId}.mp4`;
-            
-            document.body.appendChild(downloadLink);
-            downloadLink.click();
-            document.body.removeChild(downloadLink);
+            if (isFallback) {
+                // For fallback URLs, open in new tab
+                window.open(downloadUrl, '_blank');
+                setTimeout(() => {
+                    downloadBtn.disabled = false;
+                    downloadBtn.textContent = 'Download Video';
+                    adShown = false;
+                }, 2000);
+            } else {
+                // For direct download URLs
+                const downloadLink = document.createElement('a');
+                downloadLink.href = downloadUrl;
+                downloadLink.target = '_blank';
+                downloadLink.download = `youtube-video-${currentVideoId}.mp4`;
+                
+                document.body.appendChild(downloadLink);
+                downloadLink.click();
+                document.body.removeChild(downloadLink);
 
-            setTimeout(() => {
-                downloadBtn.disabled = false;
-                downloadBtn.textContent = 'Download Video';
-                adShown = false;
-            }, 2000);
+                setTimeout(() => {
+                    downloadBtn.disabled = false;
+                    downloadBtn.textContent = 'Download Video';
+                    adShown = false;
+                }, 2000);
+            }
         });
 
         function extractVideoId(url) {

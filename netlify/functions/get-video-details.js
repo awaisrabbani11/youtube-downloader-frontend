@@ -2,15 +2,15 @@
 const axios = require('axios');
 
 exports.handler = async (event, context) => {
-  // CORS headers to allow requests from your frontend
+  // CORS headers
   const headers = {
     'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-RapidAPI-Key, X-RapidAPI-Host',
     'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
     'Content-Type': 'application/json'
   };
 
-  // Handle preflight OPTIONS request
+  // Handle CORS preflight
   if (event.httpMethod === 'OPTIONS') {
     return {
       statusCode: 200,
@@ -19,8 +19,8 @@ exports.handler = async (event, context) => {
     };
   }
 
-  // Only allow GET and POST requests
-  if (event.httpMethod !== 'GET' && event.httpMethod !== 'POST') {
+  // Only allow GET requests
+  if (event.httpMethod !== 'GET') {
     return {
       statusCode: 405,
       headers,
@@ -29,47 +29,30 @@ exports.handler = async (event, context) => {
   }
 
   try {
-    // Extract videoId from query parameters or request body
-    let videoId;
-    if (event.httpMethod === 'GET') {
-      videoId = event.queryStringParameters.videoId;
-    } else {
-      const body = JSON.parse(event.body || '{}');
-      videoId = body.videoId;
-    }
+    const videoId = event.queryStringParameters.videoId;
 
-    // Validate videoId parameter
     if (!videoId) {
       return {
         statusCode: 400,
         headers,
-        body: JSON.stringify({ 
-          error: 'Missing videoId parameter',
-          message: 'Please provide a valid YouTube video ID'
-        })
+        body: JSON.stringify({ error: 'Missing videoId parameter' })
       };
     }
 
-    // Validate videoId format (basic YouTube ID validation)
-    if (!/^[a-zA-Z0-9_-]{11}$/.test(videoId)) {
-      return {
-        statusCode: 400,
-        headers,
-        body: JSON.stringify({ 
-          error: 'Invalid videoId format',
-          message: 'YouTube video ID must be 11 characters long'
-        })
-      };
-    }
-
-    // Get API key from environment variable
+    // Get API key from environment
     const RAPIDAPI_KEY = process.env.RAPIDAPI_KEY;
     
     if (!RAPIDAPI_KEY) {
-      throw new Error('RAPIDAPI_KEY environment variable is not configured');
+      return {
+        statusCode: 500,
+        headers,
+        body: JSON.stringify({ error: 'API key not configured' })
+      };
     }
 
-    // Make request to YouTube Media Downloader API
+    console.log(`Fetching video details for: ${videoId}`);
+
+    // Make API request
     const response = await axios.get(
       `https://youtube-media-downloader.p.rapidapi.com/v2/video/details`,
       {
@@ -83,34 +66,84 @@ exports.handler = async (event, context) => {
           'X-RapidAPI-Key': RAPIDAPI_KEY,
           'X-RapidAPI-Host': 'youtube-media-downloader.p.rapidapi.com'
         },
-        timeout: 10000 // 10 second timeout
+        timeout: 15000
       }
     );
 
-    // Return successful response
+    const data = response.data;
+    console.log('API Response received:', Object.keys(data));
+
+    // Process video formats for download
+    let downloadableFormats = [];
+
+    // Check for video formats in different possible locations
+    if (data.videos && data.videos.formats) {
+      downloadableFormats = data.videos.formats.map(format => ({
+        quality: format.qualityLabel || `Quality ${format.itag}`,
+        container: format.container || 'mp4',
+        url: format.url,
+        itag: format.itag,
+        hasAudio: format.hasAudio !== false
+      }));
+    }
+
+    // If no videos found, check adaptive formats
+    if (downloadableFormats.length === 0 && data.videos && data.videos.adaptiveFormats) {
+      downloadableFormats = data.videos.adaptiveFormats
+        .filter(format => format.mimeType && format.mimeType.includes('video'))
+        .map(format => ({
+          quality: format.qualityLabel || `Quality ${format.itag}`,
+          container: format.container || 'mp4',
+          url: format.url,
+          itag: format.itag,
+          hasAudio: format.hasAudio !== false
+        }));
+    }
+
+    // If still no formats, check direct formats array
+    if (downloadableFormats.length === 0 && data.formats) {
+      downloadableFormats = data.formats
+        .filter(format => format.mimeType && format.mimeType.includes('video'))
+        .map(format => ({
+          quality: format.qualityLabel || `Quality ${format.itag}`,
+          container: format.container || 'mp4',
+          url: format.url,
+          itag: format.itag,
+          hasAudio: format.hasAudio !== false
+        }));
+    }
+
+    console.log(`Found ${downloadableFormats.length} downloadable formats`);
+
+    // Return processed data to frontend
+    const responseData = {
+      title: data.title || 'Unknown Title',
+      thumbnail: data.thumbnails && data.thumbnails.length > 0 ? data.thumbnails[0].url : `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`,
+      duration: data.duration || 'Unknown',
+      viewCount: data.viewCount || 'Unknown',
+      formats: downloadableFormats,
+      rawData: data // Include raw data for debugging
+    };
+
     return {
       statusCode: 200,
       headers,
-      body: JSON.stringify(response.data)
+      body: JSON.stringify(responseData)
     };
 
   } catch (error) {
     console.error('Netlify Function Error:', error);
 
-    // Handle specific error types
     if (error.response) {
-      // API responded with error status
       return {
         statusCode: error.response.status,
         headers,
         body: JSON.stringify({ 
-          error: 'YouTube API Error',
-          message: error.response.data?.message || 'Failed to fetch video details from YouTube API',
-          status: error.response.status
+          error: 'API Error',
+          message: error.response.data?.message || 'Failed to fetch video details'
         })
       };
     } else if (error.request) {
-      // Request was made but no response received
       return {
         statusCode: 503,
         headers,
@@ -119,18 +152,7 @@ exports.handler = async (event, context) => {
           message: 'Unable to connect to YouTube API service'
         })
       };
-    } else if (error.code === 'ECONNABORTED') {
-      // Request timeout
-      return {
-        statusCode: 408,
-        headers,
-        body: JSON.stringify({ 
-          error: 'Request Timeout',
-          message: 'YouTube API request timed out'
-        })
-      };
     } else {
-      // Other errors
       return {
         statusCode: 500,
         headers,
@@ -142,3 +164,5 @@ exports.handler = async (event, context) => {
     }
   }
 };
+  }
+

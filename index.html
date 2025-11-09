@@ -398,86 +398,76 @@
     </footer>
 
     <script>
-        // For now, we'll use a simulated backend since we're waiting for Netlify setup
-        // Replace this URL with your Netlify function URL when ready
-        const backendUrl = 'https://your-netlify-site.netlify.app/.netlify/functions/get-video-details';
+        <script>
+    // Your Netlify function URL - this connects to your secure backend
+    const functionUrl = '/.netlify/functions/get-video-details';
 
-        document.addEventListener('DOMContentLoaded', function() {
-            const fetchBtn = document.getElementById('fetchBtn');
-            const videoUrlInput = document.getElementById('videoUrl');
-            const videoPreview = document.getElementById('videoPreview');
-            const downloadOptions = document.getElementById('downloadOptions');
-            const qualityOptions = document.getElementById('qualityOptions');
-            const downloadBtn = document.getElementById('downloadBtn');
-            const loading = document.getElementById('loading');
-            const videoThumbnail = document.getElementById('videoThumbnail');
-            const videoTitle = document.getElementById('videoTitle');
-            const videoMeta = document.getElementById('videoMeta');
-            
-            let currentVideoId = null;
-            let adShown = false;
+    document.addEventListener('DOMContentLoaded', function() {
+        const fetchBtn = document.getElementById('fetchBtn');
+        const videoUrlInput = document.getElementById('videoUrl');
+        const videoPreview = document.getElementById('videoPreview');
+        const downloadOptions = document.getElementById('downloadOptions');
+        const qualityOptions = document.getElementById('qualityOptions');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const loading = document.getElementById('loading');
+        const videoThumbnail = document.getElementById('videoThumbnail');
+        const videoTitle = document.getElementById('videoTitle');
+        const videoMeta = document.getElementById('videoMeta');
+        
+        let currentVideoId = null;
+        let adShown = false;
 
-            // Fetch video info when button is clicked
-            fetchBtn.addEventListener('click', async function() {
-                const videoUrl = videoUrlInput.value.trim();
-                if (!videoUrl) {
-                    alert('Please enter a YouTube URL');
-                    return;
+        // Fetch video info when button is clicked
+        fetchBtn.addEventListener('click', async function() {
+            const videoUrl = videoUrlInput.value.trim();
+            if (!videoUrl) {
+                alert('Please enter a YouTube URL');
+                return;
+            }
+
+            const videoId = extractVideoId(videoUrl);
+            if (!videoId) {
+                alert('Invalid YouTube URL. Please check and try again.');
+                return;
+            }
+            currentVideoId = videoId;
+
+            fetchBtn.disabled = true;
+            fetchBtn.textContent = 'Fetching...';
+            loading.style.display = 'block';
+            videoPreview.style.display = 'none';
+            downloadOptions.style.display = 'none';
+
+            try {
+                // REAL API CALL to your Netlify function
+                const response = await fetch(`${functionUrl}?videoId=${videoId}`);
+                
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || 'Failed to fetch video details');
                 }
+                
+                const data = await response.json();
 
-                const videoId = extractVideoId(videoUrl);
-                if (!videoId) {
-                    alert('Invalid YouTube URL. Please check and try again.');
-                    return;
+                // Display video information
+                if (data.thumbnails && data.thumbnails.length > 0) {
+                    videoThumbnail.src = data.thumbnails[0].url;
+                } else {
+                    videoThumbnail.src = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
                 }
-                currentVideoId = videoId;
+                
+                videoTitle.textContent = data.title || 'Unknown Title';
+                videoMeta.textContent = `Duration: ${data.duration || 'Unknown'} | Views: ${data.viewCount || 'Unknown'}`;
 
-                fetchBtn.disabled = true;
-                fetchBtn.textContent = 'Fetching...';
-                loading.style.display = 'block';
-                videoPreview.style.display = 'none';
-                downloadOptions.style.display = 'none';
+                videoPreview.style.display = 'block';
 
-                try {
-                    // For demo purposes - simulate API response
-                    // In production, uncomment the fetch code below
-                    
-                    // REAL API CALL (commented out for now)
-                    /*
-                    const response = await fetch(`${backendUrl}?videoId=${videoId}`);
-                    if (!response.ok) {
-                        throw new Error('Failed to fetch video details');
-                    }
-                    const data = await response.json();
-                    */
-                    
-                    // DEMO DATA - Remove this when using real API
-                    const data = {
-                        title: 'YouTube Video - ' + videoId,
-                        thumbnail: `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`,
-                        duration: '10:30',
-                        views: '1,234,567',
-                        formats: [
-                            { quality: '360p', container: 'mp4', url: '#' },
-                            { quality: '480p', container: 'mp4', url: '#' },
-                            { quality: '720p', container: 'mp4', url: '#' },
-                            { quality: '1080p', container: 'mp4', url: '#' }
-                        ]
-                    };
-
-                    // Display video information
-                    videoThumbnail.src = data.thumbnail;
-                    videoTitle.textContent = data.title;
-                    videoMeta.textContent = `Duration: ${data.duration} | Views: ${data.views}`;
-
-                    videoPreview.style.display = 'block';
-
-                    // Populate quality options
-                    qualityOptions.innerHTML = '';
-                    data.formats.forEach(format => {
+                // Populate quality options
+                qualityOptions.innerHTML = '';
+                if (data.videos && data.videos.formats && data.videos.formats.length > 0) {
+                    data.videos.formats.forEach(format => {
                         const btn = document.createElement('button');
                         btn.className = 'quality-btn';
-                        btn.textContent = `${format.quality} (${format.container})`;
+                        btn.textContent = `${format.qualityLabel} (${format.container})`;
                         btn.dataset.url = format.url;
                         btn.addEventListener('click', function() {
                             document.querySelectorAll('.quality-btn').forEach(b => {
@@ -487,56 +477,70 @@
                         });
                         qualityOptions.appendChild(btn);
                     });
-
-                    downloadOptions.style.display = 'block';
-                } catch (error) {
-                    console.error('Error:', error);
-                    alert('Error: ' + error.message);
-                } finally {
-                    fetchBtn.disabled = false;
-                    fetchBtn.textContent = 'Get Video';
-                    loading.style.display = 'none';
-                }
-            });
-
-            // Download button functionality
-            downloadBtn.addEventListener('click', function() {
-                if (!adShown) {
-                    // First click - show ad
-                    alert('Ad would be shown here. In production, add your Adastra pop-under ad code.');
-                    // ADD YOUR ADASTRA POP-UNDER AD CODE HERE
-                    
-                    downloadBtn.textContent = 'Click Again to Download';
-                    adShown = true;
-                    return;
+                } else {
+                    qualityOptions.innerHTML = '<p>No downloadable formats found for this video.</p>';
                 }
 
-                // Second click - proceed with download
-                const selectedQuality = document.querySelector('.quality-btn.active');
-                if (!selectedQuality) {
-                    alert('Please select a video quality');
-                    return;
-                }
-
-                downloadBtn.disabled = true;
-                downloadBtn.textContent = 'Downloading...';
-
-                // For demo - simulate download
-                setTimeout(() => {
-                    alert('Download functionality will work when backend is connected!');
-                    downloadBtn.disabled = false;
-                    downloadBtn.textContent = 'Download Video';
-                    adShown = false;
-                }, 1000);
-            });
-
-            // Helper function to extract YouTube Video ID from URL
-            function extractVideoId(url) {
-                const regExp = /^.*((youtu.be\/)|(v\/)|(\/u\/\w\/)|(embed\/)|(watch\?))\??v?=?([^#&?]*).*/;
-                const match = url.match(regExp);
-                return (match && match[7].length === 11) ? match[7] : null;
+                downloadOptions.style.display = 'block';
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error: ' + error.message);
+            } finally {
+                fetchBtn.disabled = false;
+                fetchBtn.textContent = 'Get Video';
+                loading.style.display = 'none';
             }
         });
+
+        // Download button functionality
+        downloadBtn.addEventListener('click', function() {
+            if (!adShown) {
+                // First click - show ad
+                alert('Ad would be shown here. In production, add your Adastra pop-under ad code.');
+                // ADD YOUR ADASTRA POP-UNDER AD CODE HERE
+                
+                downloadBtn.textContent = 'Click Again to Download';
+                adShown = true;
+                return;
+            }
+
+            // Second click - proceed with download
+            const selectedQuality = document.querySelector('.quality-btn.active');
+            if (!selectedQuality) {
+                alert('Please select a video quality');
+                return;
+            }
+
+            downloadBtn.disabled = true;
+            downloadBtn.textContent = 'Downloading...';
+
+            // Create download link
+            const downloadLink = document.createElement('a');
+            downloadLink.href = selectedQuality.dataset.url;
+            downloadLink.target = '_blank';
+            downloadLink.download = `youtube-video-${currentVideoId}.mp4`;
+            
+            // Trigger the download
+            document.body.appendChild(downloadLink);
+            downloadLink.click();
+            document.body.removeChild(downloadLink);
+
+            // Reset button after a short delay
+            setTimeout(() => {
+                downloadBtn.disabled = false;
+                downloadBtn.textContent = 'Download Video';
+                adShown = false;
+            }, 2000);
+        });
+
+        // Helper function to extract YouTube Video ID from URL
+        function extractVideoId(url) {
+            const regExp = /^.*((youtu.be\/)|(v\/)|(\/u\/\w\/)|(embed\/)|(watch\?))\??v?=?([^#&?]*).*/;
+            const match = url.match(regExp);
+            return (match && match[7].length === 11) ? match[7] : null;
+        }
+    });
+</script>
     </script>
 </body>
 </html>

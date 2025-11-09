@@ -398,9 +398,8 @@
     </footer>
 
     <script>
-        <script>
-    // Your Netlify function URL - this connects to your secure backend
-    const functionUrl = '/.netlify/functions/get-video-details';
+    // Your Netlify function URL
+    const functionUrl = 'https://youtube-video-downloader33.netlify.app/.netlify/functions/get-video-details';
 
     document.addEventListener('DOMContentLoaded', function() {
         const fetchBtn = document.getElementById('fetchBtn');
@@ -439,15 +438,26 @@
             downloadOptions.style.display = 'none';
 
             try {
-                // REAL API CALL to your Netlify function
-                const response = await fetch(`${functionUrl}?videoId=${videoId}`);
+                // REAL API CALL with proper error handling
+                console.log('Fetching video details for:', videoId);
+                
+                const response = await fetch(`${functionUrl}?videoId=${videoId}`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
+                
+                console.log('Response status:', response.status);
                 
                 if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(errorData.error || 'Failed to fetch video details');
+                    const errorText = await response.text();
+                    console.error('API Error:', errorText);
+                    throw new Error(`Server returned ${response.status}: ${errorText}`);
                 }
                 
                 const data = await response.json();
+                console.log('Video data received:', data);
 
                 // Display video information
                 if (data.thumbnails && data.thumbnails.length > 0) {
@@ -484,7 +494,7 @@
                 downloadOptions.style.display = 'block';
             } catch (error) {
                 console.error('Error:', error);
-                alert('Error: ' + error.message);
+                alert('Error fetching video: ' + error.message);
             } finally {
                 fetchBtn.disabled = false;
                 fetchBtn.textContent = 'Get Video';
@@ -496,8 +506,9 @@
         downloadBtn.addEventListener('click', function() {
             if (!adShown) {
                 // First click - show ad
-                alert('Ad would be shown here. In production, add your Adastra pop-under ad code.');
-                // ADD YOUR ADASTRA POP-UNDER AD CODE HERE
+                // *** ADASTRA POP-UNDER AD CODE GOES HERE ***
+                alert('Ad would be shown here. Replace with Adastra ad code');
+                // Example: window.open('https://your-ad-url.com', '_blank', 'popunder');
                 
                 downloadBtn.textContent = 'Click Again to Download';
                 adShown = true;
@@ -525,7 +536,7 @@
             downloadLink.click();
             document.body.removeChild(downloadLink);
 
-            // Reset button after a short delay
+            // Reset button
             setTimeout(() => {
                 downloadBtn.disabled = false;
                 downloadBtn.textContent = 'Download Video';
@@ -540,7 +551,6 @@
             return (match && match[7].length === 11) ? match[7] : null;
         }
     });
-</script>
     </script>
 </body>
 </html>
